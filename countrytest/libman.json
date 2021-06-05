@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "defaultProvider": "cdnjs",
+  "libraries": [
+    {
+      "library": "bootstrap-table@1.18.3",
+      "destination": "Scripts/bootstrap-table/"
+    },
+    {
+      "library": "jquery.blockUI@2.70",
+      "destination": "Scripts/jquery.blockUI/"
+    }
+  ]
+}

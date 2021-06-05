@@ -1,0 +1,248 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<script>
+    $(function () {
+        getQueryData();
+        $('#btnQuery').click(function (e) { //查詢 
+            getQueryData($('#countryname').val());
+        });
+    });
+
+    /**
+     * 取得資料
+     * param name
+     */
+    function getQueryData(name) {
+        var url = "";
+        if (name !== undefined && name !== null && name.trim() !== "") {
+            url = "https://restcountries.eu/rest/v2/name/" + name + "?fullText=false";
+        }
+        else {
+            url = "https://restcountries.eu/rest/v2/all";
+        }
+
+
+        $.get(url, null,
+            function (response, textStatus, jqXHR) {
+                //console.log(response);
+                var $table = $('#table');
+                var data;
+
+                if (response !== null && response !== undefined) {
+                    data = response
+                }
+                else {
+                    data = null;
+                    alert('查無資料');
+                }
+
+                $table.bootstrapTable('destroy').bootstrapTable({
+                    data: data,
+                    locale: "zh-TW",
+                    columns: [
+                        [
+                            {
+                                field: '',
+                                title: '操作',
+                                align: 'center',
+                                valign: 'middle',
+                                width: "1",
+                                widthUnit: "%",
+                                clickToSelect: false,
+                                formatter: function (value, row, index) {
+                                    return operateFormatter(value, row, index, "檢視");
+                                },
+                                events: {
+                                    'click .btn-custom': function (e, value, row) {
+                                        getDialogOpt('明細', "myModal");
+                                        $("#myModal").modal(opt);
+                                        $("#myModal").modal("show");
+                                        setDetail(row);
+                                    }
+                                }
+                            }, {
+                                field: 'flag',
+                                title: '國旗',
+                                align: 'center',
+                                valign: 'middle',
+                                clickToSelect: false,
+                                formatter: function (value, row, index) {
+                                    return '<img src="' + row.flag + '" height="20px" width="20px" />';
+                                }
+                            },
+                            {
+                                field: 'name',
+                                title: '國家名稱',
+                                sortable: true,
+                                align: 'left',
+                                valign: 'middle'
+                            },
+                            {
+                                field: 'alpha2Code',
+                                title: '2碼代碼',
+                                sortable: false,
+                                align: 'left',
+                                valign: 'middle'
+                            }
+                            ,
+                            {
+                                field: 'alpha3Code',
+                                title: '3位國家代碼',
+                                sortable: false,
+                                align: 'left',
+                                valign: 'middle'
+                            },
+                            {
+                                field: 'nativeName',
+                                title: '母語名稱',
+                                sortable: false,
+                                align: 'left',
+                                valign: 'middle'
+                            },
+                            {
+                                field: 'altSpellings',
+                                title: '替代國家名稱',
+                                sortable: false,
+                                align: 'left',
+                                valign: 'middle'
+                            },
+                            {
+                                field: 'callingCodes',
+                                title: '國際電話區號',
+                                sortable: false,
+                                align: 'left',
+                                valign: 'middle'
+                            }
+                        ]]
+                }
+                );
+
+                alert('查詢完成!');
+
+            },
+            "json"
+        );
+    }
+
+    function setDetail(row) {
+        $('#myModal input ').val('');
+        $('#name').val(row.name);
+        $('#alpha2Code').val(row.alpha2Code);
+        $('#alpha3Code').val(row.alpha3Code);
+        $('#capital').val(row.capital);
+        $('#altSpellings').val(row.altSpellings);
+        $('#region').val(row.region);
+        $('#subregion').val(row.subregion);
+        $('#nativeName').val(row.nativeName);
+        $('#callingCodes').val(row.callingCodes);
+    }
+</script>
+
+<table style="width:100%;" cellpadding="2" cellspacing="2" border="1">
+    <tr>
+        <td align="right">
+            國家
+        </td>
+        <td><input type="text" id="countryname" class="form-control" size="20" maxlength="20" style="width:20%;" /></td>
+    </tr>
+    <tr>
+        <td colspan="2" align="center">
+            <button class="btn btn-success" id="btnQuery">查詢</button>
+        </td>
+    </tr>
+</table>
+
+<table id="table"
+       data-toggle="table"
+       data-header-style="headerStyle"
+       data-row-style="rowStyle"
+       data-pagination="true"
+       data-page-size="25"
+       data-page-list="[10, 25, 50, 100, 200, All]"
+       data-pagination-h-align="left"
+       data-pagination-detail-h-align="right"
+       data-pagination-v-align="top">
+    <thead>
+        <tr>
+        </tr>
+    </thead>
+</table>
+
+<div id="myModal" class="modal fade">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                    &times;
+                </button>
+                <h4 class="modal-title">明細</h4>
+                <div class="row" style="float: right !important;">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" id="btn_Close">
+                        關閉
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <table id="upperInputPart" class="table table-striped" border="0" cellpadding="3" cellspacing="0" style="width: 100%; height: 20px;">
+                    <tr>
+                        <td class="success" style="width:10%;">國家名稱</td>
+                        <td>
+                            <input type="hidden" id="mode" />
+                            <input type="text" id="name" name="name" maxlength="10" size="10" value="" />
+                        </td>
+                        <td class="success" style="width:10%;">2位國家代碼</td>
+                        <td>
+                            <input type="hidden" id="mode" />
+                            <input type="text" id="alpha2Code" name="alpha2Code" maxlength="10" size="10" value="" />
+                        </td>
+                        <td class="success" style="width:10%;">3位國家代碼</td>
+                        <td>
+                            <input type="hidden" id="mode" />
+                            <input type="text" id="alpha3Code" name="alpha3Code" maxlength="10" size="10" value="" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="success" style="width:10%;">母語名稱</td>
+                        <td>
+                            <input type="hidden" id="mode" />
+                            <input type="text" id="nativeName" name="nativeName" maxlength="10" size="10" value="" />
+                        </td>
+                        <td class="success" style="width:10%;">替代國家名稱</td>
+                        <td>
+                            <input type="hidden" id="mode" />
+                            <input type="text" id="altSpellings" name="altSpellings" maxlength="10" size="10" value="" />
+                        </td>
+                        <td class="success" style="width:10%;">國際電話區號</td>
+                        <td>
+                            <input type="hidden" id="mode" />
+                            <input type="text" id="callingCodes" name="callingCodes" maxlength="10" size="10" value="" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="success" style="width:10%;">首都</td>
+                        <td>
+                            <input type="hidden" id="mode" />
+                            <input type="text" id="capital" name="區域" maxlength="10" size="10" value="" />
+                        </td>
+                        <td class="success" style="width:10%;">區域</td>
+                        <td>
+                            <input type="hidden" id="mode" />
+                            <input type="text" id="region" name="region" maxlength="10" size="10" value="" />
+                        </td>
+                        <td class="success" style="width:10%;">子區域</td>
+                        <td>
+                            <input type="hidden" id="mode" />
+                            <input type="text" id="subregion" name="subregion" maxlength="10" size="10" value="" />
+                        </td>
+                    </tr>
+
+                </table>
+            </div>
+            <div class="modal-footer">
+
+            </div>
+        </div>
+    </div>
+</div>

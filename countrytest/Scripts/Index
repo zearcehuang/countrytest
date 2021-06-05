@@ -1,0 +1,425 @@
+﻿
+@{
+    ViewBag.Title = Resource.Views.OperateGroup.Index.fun_detail_name;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script>
+    $(function () {
+        //輸入驗證 by name
+        var validator = $("#test").validate({
+            rules: {
+                group_code: 'required',
+                group_name: 'required',
+                group_name_e: 'required'
+            }
+        });
+
+        getQueryData("", "", "");
+        setBtn();
+    });
+
+    /**設定按鈕 */
+    function setBtn() {
+        //新增
+        $('#btn_Add').click(function (e) {
+            getDialogOpt('@Resource.Views.OperateGroup.Index.fun_detail_name_add', "myModal");
+            $("#myModal").modal(opt);
+            $("#myModal").modal("show");
+            $('#mode').val('ADD');
+            showCodeDetail($('#mode').val());
+        });
+
+        //查詢
+        $('#btn_Query').click(function (e) {
+            getQueryData($('#group_code_q').val(), $('#group_name_q').val(), $('#group_name_e_q').val());
+        });
+
+        //儲存
+        $('#btnSaveDetail').click(function (e) {
+            if ($('#test').valid() === false) {
+                myNoty('@Resource.Views.Shared.Layout.Msg_Check_Input', 'error');
+            }
+            else {
+                $.post('@Url.Action("Save")',
+                    {
+                        mode:$('#mode').val(),
+                        code: $('#group_code').val(),
+                        groupname: $('#group_name').val(),
+                        groupnamee: $('#group_name_e').val(),
+                        memo: $('#memo').val(),
+                        __RequestVerificationToken: $('[name=__RequestVerificationToken]').val()
+                    },
+                    function (response, textStatus, jqXHR) {
+                        if (response !== null && response !== undefined) {
+                            myNoty(response.msg, (response.success === true ? 'info' : 'error'));
+                            if (response.success === true) {
+                                //成功再重整及關閉視窗
+                                $('#myModal').modal('toggle');
+                                getQueryData($('#group_code_q').val(), $('#group_name_q').val(), $('#group_name_e_q').val());
+                            }
+
+                            $.unblockUI();
+                        }
+                    },
+                    "Json"
+                );
+            }
+        });
+        //多選刪除
+        $('#btn_Del').click(function (e) {
+            var deldata = $('#tabData').bootstrapTable('getSelections');
+            if (deldata.length === 0) {
+                myNoty('@Resource.Views.Shared.Layout.Msg_Select_Delete', 'warning');
+                return;
+            }
+            var n = new Noty({
+                text: '@Resource.Views.Shared.Layout.Msg_Check_Delete',
+                theme: 'semanticui',
+                layout: 'center',
+                buttons: [
+                    Noty.button('@Resource.Views.Shared.Layout.Confirm_Yes', '', function () {
+                        $.ajax({
+                            type: "POST",
+                            url: '@Url.Action("DelData")',
+                            data: {
+                                operategroups: deldata,
+                                __RequestVerificationToken: $('[name=__RequestVerificationToken]').val()
+                            },
+                            dataType: "json",
+                            success: function (response) {
+                                if (response.success) {
+                                    myNoty(response.msg, 'info');
+                                    //$('#btn_Close').trigger('click');       //關閉視窗
+                                    getQueryData($('#group_code_q').val(), $('#group_name_q').val(), $('#group_name_e_q').val()); //更新資料
+                                } else {
+                                    myNoty(response.msg, 'error');
+                                }
+                                $.unblockUI();
+                                n.close();
+                            }
+                        });
+                    }, { id: 'button1', 'data-status': 'ok' }),
+                    Noty.button('@Resource.Views.Shared.Layout.Confirm_No', '', function () {
+                        console.log('@Resource.Views.Shared.Layout.Msg_Del_Cancel');
+                        n.close();
+                    })
+                ]
+            });
+            n.show();
+        });
+
+        //單筆刪除
+        $('#btnDelDetail').click(function (e) {
+            var n = new Noty({
+                text: '@Resource.Views.Shared.Layout.Msg_Check_Delete',
+                theme: 'semanticui',
+                layout: 'center',
+                buttons: [
+                    Noty.button('@Resource.Views.Shared.Layout.Confirm_Yes', '', function () {
+                        var deldata = [];
+                        deldata.push({ group_code: $('#group_code').val() });
+
+                        $.ajax({
+                            type: "POST",
+                            url: '@Url.Action("DelData")',
+                            data: {
+                                operategroups: deldata,
+                                __RequestVerificationToken: $('[name=__RequestVerificationToken]').val()
+                            },
+                            dataType: "json",
+                            success: function (response) {
+                                if (response.success) {
+                                    myNoty(response.msg, 'info');
+                                    $('#btn_Close').trigger('click');       //關閉視窗
+                                    getQueryData($('#group_code_q').val(), $('#group_name_q').val(), $('#group_name_e_q').val()); //更新資料
+                                } else {
+                                    myNoty(response.msg, 'error');
+                                }
+                                $.unblockUI();
+                                n.close();
+                            }
+                        });
+                    }, { id: 'button1', 'data-status': 'ok' }),
+                    Noty.button('@Resource.Views.Shared.Layout.Confirm_No', '', function () {
+                        console.log('@Resource.Views.Shared.Layout.Msg_Del_Cancel');
+                        n.close();
+                    })
+                ]
+            });
+            n.show();
+
+        });
+    }
+
+    /**
+     * 取得明細
+     */
+    function getQueryData(code, groupname, groupnamee) {
+        var $table = $('#tabData');
+        var data = null;
+
+        $.ajax({
+            type: "get",
+            url: '@Url.Action("getQueryData")',
+            data: {
+                code: code,
+                groupname: groupname,
+                groupnamee: groupnamee
+            },
+            dataType: "json",
+            success: function (response) {
+                if (response !== null && response !== undefined) {
+                    if (response.success) {
+                        data = response.data;
+                        if (data.length === 0) {
+                            myNoty("@Resource.Views.Shared.Layout.Msg_NoData", 'warning');
+                        }
+                    }
+                    else {
+                        data = null;
+                        myNoty("@Resource.Views.Shared.Layout.Msg_NoData", 'warning');
+                    }
+                }
+                else {
+                    data = null;
+                    myNoty("@Resource.Views.Shared.Layout.Msg_NoData", 'warning');
+                }
+
+                $table.bootstrapTable('destroy').bootstrapTable({
+                    data: data,
+                    locale: "en-us",
+                    columns: [
+                        [
+                            {
+                                align: 'left',
+                                valign: 'middle',
+                                checkbox: true,
+                                select: false,
+                                formatter: function (value, row, index) {
+                                    if (row.group_code === "011" || row.group_code === "012") {
+                                        return { disabled: true }
+                                    }
+                                    else {
+                                        return { disabled: false }
+                                    }
+                                    return value;
+                                },
+                            }
+                            , {
+                                field: '',
+                                title: '@Resource.Views.Shared.Layout.tb_Action',
+                                align: 'center',
+                                valign: 'middle',
+                                width: "1",
+                                widthUnit: "%",
+                                clickToSelect: false,
+                                formatter: function (value, row, index) {
+                                    return operateFormatter(value, row, index,"@Resource.Views.Shared.Layout.btn_Edit");
+                                },
+                                events: {
+                                    'click .btn-custom': function (e, value, row) {
+                                        getDialogOpt('@Resource.Views.OperateGroup.Index.fun_detail_name_edit', "myModal");
+                                        $("#myModal").modal(opt);
+                                        $("#myModal").modal("show");
+                                        $('#mode').val('EDIT');
+                                        showCodeDetail($('#mode').val());
+                                        getDetail(row);
+                                    }
+                                }
+                            },
+                            {
+                                field: 'group_code',
+                                title: '@Resource.Views.OperateGroup.Index.tb_group_code',
+                                sortable: true,
+                                align: 'left',
+                                valign: 'middle',
+                                width: '10',
+                                widthUnit: '%'
+                            },
+                            {
+                                field: 'group_name',
+                                title: '@Resource.Views.OperateGroup.Index.tb_group_name',
+                                sortable: true,
+                                align: 'left',
+                                valign: 'middle',
+                                width: '35',
+                                widthUnit: '%'
+                            },
+                            {
+                                field: 'group_name_e',
+                                title: '@Resource.Views.OperateGroup.Index.tb_group_name_e',
+                                sortable: true,
+                                align: 'left',
+                                valign: 'middle',
+                                width: '40',
+                                widthUnit: '%'
+                            },
+                            {
+                                field: 'memo',
+                                title: '@Resource.Views.OperateGroup.Index.tb_memo',
+                                sortable: true,
+                                align: 'left',
+                                valign: 'middle'
+                            }
+                        ]]
+                }
+                );
+
+                CustomPagination('tabData');
+                $.unblockUI();
+            }
+        });
+    }
+
+    /**
+     * 設定資料欄位顯示狀態
+     * param mode 新增或修改
+     */
+    function showCodeDetail(mode) {
+        if (mode == "EDIT") {
+            $('#group_code').prop('disabled', true);
+            $('#btnDelDetail').show();
+        }
+        else {
+            $('#group_code').prop('disabled', false);
+            $('#btnDelDetail').hide();
+        }
+        $('#myModal :input[type!="hidden"]').val('');   //清空
+    }
+
+    /**
+     * 明細
+     * param row 資料列
+     */
+    function getDetail(row) {
+        $('#group_code').val(row.group_code);
+        $('#group_name').val(row.group_name);
+        $('#group_name_e').val(row.group_name_e);
+        $('#memo').val(row.memo);
+        if (row.group_code === "011" || row.group_code === "012") {
+            $('#btnDelDetail').hide();      //不可刪除
+        }
+    }
+</script>
+
+<ul class="breadcrumb">
+    <li><a href="#">@Resource.Views.Shared.Layout.fun_setup</a></li>
+    <li class="active">@Resource.Views.OperateGroup.Index.fun_detail_name</li>
+</ul>
+
+@Html.AntiForgeryToken()
+
+<div style="float:right;margin-bottom: 5px;">
+    <div id="btnArea" class="Button_Area">
+        <input type="button" style=" cursor: pointer;" id="btn_Add" value="@Resource.Views.Shared.Layout.btn_Add" />
+        <input type="button" style=" cursor: pointer;" id="btn_Del" value="@Resource.Views.Shared.Layout.btn_Del" />
+        <input type="button" style=" cursor: pointer;" id="btn_Query" value="@Resource.Views.Shared.Layout.btn_Query" />
+    </div>
+</div>
+<table id="upperInputPart" class="TB_Main" border="0" cellpadding="0" cellspacing="0" style="width: 100%; height: 20px;">
+    <tr>
+        <td class="Title3">@Resource.Views.OperateGroup.Index.tb_group_code</td>
+        <td class="Content3"><input type="text" id="group_code_q" maxlength="10" size="10" /></td>
+    </tr>
+    <tr>
+        <td class="Title3">@Resource.Views.OperateGroup.Index.tb_group_name</td>
+        <td class="Content3">
+            <input type="text" id="group_name_q" maxlength="100" size="100" />
+        </td>
+
+    </tr>
+    <tr>
+
+        <td class="Title3">@Resource.Views.OperateGroup.Index.tb_group_name_e</td>
+        <td class="Content3">
+            <input type="text" id="group_name_e_q" maxlength="200" size="150" />
+        </td>
+    </tr>
+</table>
+<div id="toolbar">
+    <div class="form-inline" role="form">
+        Total&nbsp;<lable id="lblCount" class="Label"></lable>&nbsp;items Rows/Page：
+        <select id="ddlPageSize" onchange="changePageSize('tabData',$(this).val())"></select>Rows
+        <input type="image" class="pageimage" src="~/images/gd_p_first.gif" id="gd_p_first" alt="gd_p_first" onclick="PrePage('tabData',$('#ddlPageList'),'1');">
+        <input type="image" class="pageimage" src="~/images/gd_p_prev.gif" id="gd_p_prev" alt="gd_p_prev" onclick="PrePage('tabData',$('#ddlPageList'));">
+        Page：<select id="ddlPageList" onchange="ChangeToSpecifiPage($(this).val(), 'tabData');"></select>
+        <input type="image" class="pageimage" src="~/images/gd_go.jpg" id="gd_go" alt="gd_go" style="width:17px;display:none;">
+        <input type="image" class="pageimage" src="~/images/gd_p_next.gif" id="gd_p_next" alt="gd_p_next" onclick="NextPage('tabData',$('#ddlPageList'));">
+        <input type="image" class="pageimage" src="~/images/gd_p_last.gif" id="gd_p_last" alt="gd_p_last" onclick="NextPage('tabData',$('#ddlPageList'),true);">
+    </div>
+</div>
+
+<table id="tabData"
+       data-header-style="headerStyle"
+       data-row-style="rowStyle"
+       data-locale="en-us"
+       data-toolbar="#toolbar"
+       data-search="false"
+       data-show-refresh="false"
+       data-pagination-v-align="none"
+       data-pagination-h-align="none"
+       data-pagination-detail-h-align="none"
+       data-pagination="true"
+       data-only-info-pagination="true">
+    <thead>
+        <tr></tr>
+    </thead>
+</table>
+<form id="test">
+    <div id="myModal" class="modal fade">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                        &times;
+                    </button>
+                    <h4 class="modal-title">作業群組明細-新增</h4>
+                    <div class="row" style="float: right !important;">
+                        <button type="button" data-dismiss="modal" id="btn_Close">
+                            @Resource.Views.Shared.Layout.btn_Close
+                        </button>
+                        <button type="button" id="btnDelDetail">
+                            @Resource.Views.Shared.Layout.btn_Del
+                        </button>
+                        <button type="button" style="margin-right:10px;" id="btnSaveDetail">
+                            @Resource.Views.Shared.Layout.btn_Save
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <table id="upperInputPart" class="TB_Main" border="0" cellpadding="3" cellspacing="0" style="width: 100%; height: 20px;">
+                        <tr>
+                            <td class="Title3">@Resource.Views.OperateGroup.Index.tb_group_code</td>
+                            <td class="Content3">
+                                <input type="hidden" id="mode" />
+                                <input type="text" id="group_code" name="group_code" maxlength="10" size="10" value="" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="Title3">@Resource.Views.OperateGroup.Index.tb_group_name</td>
+                            <td class="Content3">
+                                <input type="text" maxlength="100" size="20" value="" id="group_name" name="group_name" />
+                            </td>
+
+                        </tr>
+                        <tr>
+                            <td class="Title3">@Resource.Views.OperateGroup.Index.tb_group_name_e</td>
+                            <td class="Content3">
+                                <input type="text" maxlength="200" size="20" value="" id="group_name_e" name="group_name_e" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="Title3">@Resource.Views.OperateGroup.Index.tb_memo</td>
+                            <td class="Content3" colspan="3">
+                                <textarea style="width:95%;" rows="3" id="memo" maxlength="300"></textarea>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="modal-footer">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
